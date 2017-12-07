@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+	{% if image %}
+	<center>
+		<img src="/{{ image }}" alt="{{ image }}"/>
+		<br> <br>
+	</center>
+	{% endif %}
+	{% if posts|length == 0 %}
+		<p>No latest posts available.</p>
+	{% endif %}
+	{% for post in posts %}
+		<div class="row" style="border-bottom: 1px solid lightgray; margin-top: 10px;">
+			<div class="col-xs-9 col-sm-5 col-sm-offset-2">
+				<p class="list">{{ post.message }}</p>
+			</div>
+			<div class="col-xs-3 col-sm-2 col-sm-offset-1">
+				<p class="{{ post.sentiment }}">{{ post.sentiment }}</p>
+			</div>
+		</div>
+
+	{% endfor %}
+
+{% endblock %}

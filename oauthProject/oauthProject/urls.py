@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
     url(r'^admin/', admin.site.urls),
     url(r'^twitter/$', core_views.collect_tweets, name='twitter'),
+    url(r'^facebook/$', core_views.collect_fb, name='facebook'),
     url(r'^settings/$', core_views.settings, name='settings'),
     url(r'^settings/password/$', core_views.password, name='password'),
 ]
