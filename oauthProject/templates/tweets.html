@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
+	{% load static %}
+	<center>
+		<img src="{% static image %}" alt="{{ image }}"/>
+		<br> <br>
+	</center>
 	{% for tweet in tweets %}
 		<div class="row" style="border-bottom: 1px solid lightgray; margin-top: 10px;">
 			<div class="col-xs-9 col-sm-5 col-sm-offset-2">

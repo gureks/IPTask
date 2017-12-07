@@ -14,6 +14,15 @@ import re
 from twython import Twython
 from textblob import TextBlob
 
+import numpy as np
+from PIL import Image
+from os import path
+import os
+import matplotlib.pyplot as plt
+import random
+
+from wordcloud import WordCloud, STOPWORDS
+
 @login_required
 def home(request):
 	return render(request, 'home.html')
@@ -64,6 +73,9 @@ def password(request):
 		form = PasswordForm(request.user)
 	return render(request, 'password.html', {'form': form})
 
+def grey_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+	return "hsl(0, 0%%, %d%%)" % random.randint(60, 100)
+
 @login_required
 def collect_tweets(request):
 	user = request.user
@@ -86,40 +98,69 @@ def collect_tweets(request):
 	)
 
 	tweets = []
-	try:
-		search_data = twitter.get_user_timeline(user_id=twitter_login.extra_data['access_token']['screen_name'], count="100")
-		data = search_data
+	text = ''
+	# try:
+	search_data = twitter.get_user_timeline(user_id=twitter_login.extra_data['access_token']['screen_name'], count="100")
+	data = search_data
+	max_id = data[len(data)-1]['id']-1
+	while True:
+		print("Max ID - " + str(max_id) + " ---- Length of Data - " + str(len(data)))
+		search_data = twitter.get_user_timeline(user_id=twitter_login.extra_data['access_token']['screen_name'], count="100", max_id=max_id)
+		data.extend(search_data)
+		previous_max_id = max_id
 		max_id = data[len(data)-1]['id']-1
-		while True:
-			print("Max ID - " + str(max_id) + " ---- Length of Data - " + str(len(data)))
-			search_data = twitter.get_user_timeline(user_id=twitter_login.extra_data['access_token']['screen_name'], count="100", max_id=max_id)
-			data.extend(search_data)
-			previous_max_id = max_id
-			max_id = data[len(data)-1]['id']-1
-			if previous_max_id == max_id:
-				break
+		if previous_max_id == max_id:
+			break
 
-		fetched_tweets = data
+	fetched_tweets = data
 
-		for tweet in fetched_tweets:
-			parsed_tweet = {}
-			parsed_tweet['text'] = tweet['text']
+	for tweet in fetched_tweets:
+		parsed_tweet = {}
+		parsed_tweet['text'] = tweet['text']
+		text += tweet['text']
+		analysis = TextBlob(' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet['text']).split()))
+		if analysis.sentiment.polarity > 0:
+			parsed_tweet['sentiment'] = 'positive'
+		elif analysis.sentiment.polarity == 0:
+			parsed_tweet['sentiment'] = 'neutral'
+		else:
+			parsed_tweet['sentiment'] = 'negative'
 
-			analysis = TextBlob(' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet['text']).split()))
-			if analysis.sentiment.polarity > 0:
-				parsed_tweet['sentiment'] = 'positive'
-			elif analysis.sentiment.polarity == 0:
-				parsed_tweet['sentiment'] = 'neutral'
-			else:
-				parsed_tweet['sentiment'] = 'negative'
-
-			if tweet['retweet_count'] > 0:
-				if parsed_tweet not in tweets:
-					tweets.append(parsed_tweet)
-			else:
+		if tweet['retweet_count'] > 0:
+			if parsed_tweet not in tweets:
 				tweets.append(parsed_tweet)
+		else:
+			tweets.append(parsed_tweet)
 
-		return render(request, 'tweets.html', {'tweets': tweets})
+	#Regex string and stopwords sourced from https://marcobonzanini.com/2015/03/09/mining-twitter-data-with-python-part-2/
+	regex_str = [
+		r'(?:[:=;][oO\-]?[D\)\]\(\]/\\OpP])', # Emoticons
+		r'<[^>]+>', # HTML tags
+		r'(?:@[\w_]+)', # @-mentions
+		r"(?:\#+[\w_]+[\w\'_\-]*[\w_]+)", # hash-tags
+		r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
+		r'(?:(?:\d+,?)+(?:\.?\d+)?)', # numbers
+		r"(?:[a-z][a-z'\-_]+[a-z])", # words with - and '
+		r'(?:[\w_]+)', # other words
+		r'(?:U\+[a-zA-Z0-9]*)', #unicode chars
+		r'(?:\S)' # anything else
+	]
+	tokens_regex =  re.compile(r'('+'|'.join(regex_str)+')', re.VERBOSE | re.IGNORECASE)
+	tokenized_status = [term for term in tokens_regex.findall(text)]
 
-	except:
-		print("Error tweet lene mei")
+	text = ' '.join(tokenized_status)
+
+	stopwords = set(STOPWORDS)
+	wc = WordCloud(max_words=1000, stopwords=stopwords, margin=10, random_state=1).generate(text)
+
+	default_colors = wc.to_array()
+	plt.imshow(wc.recolor(color_func=grey_color_func, random_state=3), interpolation="bilinear")
+	print(os.getcwd())
+	wc.to_file('static/word_clouds/twitter_' + twitter_login.extra_data['access_token']['screen_name'] + '.png')
+	return render(request, 'tweets.html', {
+							'tweets': tweets,
+							'image': 'word_clouds/twitter_' + twitter_login.extra_data['access_token']['screen_name'] + '.png',
+							})
+
+	# except:
+	# 	print("Error tweet lene mei")
