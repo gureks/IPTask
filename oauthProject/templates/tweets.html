@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+	{% for tweet in tweets %}
+		<div class="row" style="border-bottom: 1px solid lightgray; margin-top: 10px;">
+			<div class="col-xs-9 col-sm-5 col-sm-offset-2">
+				<p class="list">{{ tweet.text }}</p>
+			</div>
+			<div class="col-xs-3 col-sm-2 col-sm-offset-1">
+				<p class="{{ tweet.sentiment }}">{{ tweet.sentiment }}</p>
+			</div>
+		</div>
+
+	{% endfor %}
+
+{% endblock %}

@@ -1,2 +1,4 @@
 django==1.11
 social-auth-app-django>=2.0
+tweepy==3.5.0
+textblob>=0.1
